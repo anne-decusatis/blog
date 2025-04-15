@@ -25,7 +25,7 @@ Third: Drug development moves slowly because people's lives are at stake and our
 
 Fourth: I don't actually think machine learning is completely useless in cancer care. For example, the OpenAI case study with Color Health to identify missed screenings [8]. This kind of improvement within the system, while not the same as curing cancer, is still deeply meaningful. My mom's first round of cancer treatment was delayed by a year due to a missed screening, and the effects of that delay are still felt by her today, so this is personal for me. We should still talk about whether an LLM is the right way to improve that system, or whether the costs of LLMs are worth the benefits. I'm not convinced this needs to be OpenAI facilitated.
 
-Fifth: I do think that AI can't replace clinicians. Meredith Broussard writes about this better than me, in More than a Glitch [9]. I've also heard that regulations are the main thing preventing health insurance companies from using AI fully in place of clinicians. Even cutting edge scan reader technology like Onc.AI's lung cancer scan AI is not marketed as replacing a radiologist [10].
+Fifth: I do think that AI can't replace clinicians. Meredith Broussard writes about this better than me, in More than a Glitch [9]. I've also heard that regulations are the main thing preventing health insurance companies from using AI fully in place of clinicians. Even cutting edge scan reader technology like Onc.AI's lung cancer scan AI is not marketed as replacing a radiologist [10], because they can't, but radiologists are really expensive, so everyone's thinking about it.
 
 ### Bringing it back to the tech industry 
 
