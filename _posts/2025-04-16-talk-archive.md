@@ -19,7 +19,7 @@ Note from 2025: I no longer wish to remain complicit in building the professiona
 
 How To Eliminate Surprises In Your Data was co-written and co-presented with my then-coworker Idrees Khan. 
 
-Presented at Scale By The Bay, November 2019 ([slides]({{site.url}}{{site.baseurl}}/media/2019-11-14-surprises-data.pdf), [speaker notes]({{site.url}}{{site.baseurl}}/media/2019-11-14-surprises-data.pdf)); Northeast Scala Symposium, March 2020 ([slides]({{site.url}}{{site.baseurl}}/media/2020-03-surprises-data.pdf)).
+Presented at Scale By The Bay, November 2019 ([slides]({{site.url}}{{site.baseurl}}/media/2019-11-14-surprises-data.pdf), [speaker notes]({{site.url}}{{site.baseurl}}/media/2019-11-14-surprises-data.txt)); Northeast Scala Symposium, March 2020 ([slides]({{site.url}}{{site.baseurl}}/media/2020-03-surprises-data.pdf)).
 
 Accepted to Scala Matsuri, June 2020; had to withdraw as travel from the US to Japan wasn't possible in June 2020. 
 
