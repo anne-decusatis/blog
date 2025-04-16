@@ -1,0 +1,265 @@
+How to Eliminate Surprises In Your Data
+
+Anne DeCusatis and Idrees Khan
+Scale by the Bay 2019
+Hi, I’m Anne, I use they/them pronouns, I’m a data infrastructure engineer at Spotify.
+I’m Idrees, I use he/him pronouns, and I’m also a Data Infrastructure Engineer at Spotify.
+
+[Idrees]
+Data Infrastructure at Spotify is responsible for the tooling that our Data Engineers use in their day to day work. We, specifically, work on a team focused on data quality and today we’re going to talk about some of the tools we’ve built, and how we use it to eliminate surprises in our data. 
+
+
+
+The example pipeline
+
+I’m gonna take my [data] to the old town [pipeline], 
+gonna [process data] til I can’t no more
+[Idrees] In this talk, we’ll walk through a simple example pipeline and follow it through the development lifecycle.
+We’ll cover some cases where data quality might be compromised & what we can do about that. Throughout our journey together we’ll discuss some of the tooling we’ve built internally at Spotify and some of the learning or challenges we faced in the process.
+
+
+
+Example pipeline
+Input: a dataset that contains all track listens
+for a given day
+{	"name": "TrackPlay",	"namespace": "com.spotify.surprises.schema",	"type": "record",	"fields": [    	{        	"name": "trackId",        	"type": "string"    	},    	{        	"name": "country",        	"type": "string"    	},    	{        	"name": "msPlayed",        	"type": "long"    	}	]}
+[Idrees] So let’s jump right into it and walk through our example pipeline. Since we work at Spotify, our example pipeline will take in a dataset of played songs. Here’s a sample Avro schema, containing a track ID, the country the track was streamed from, and the number of milliseconds the song was played for. 
+
+It’s important to note that this is an example schema. In reality this could have more fields, different avro data types, and of course personal data or location data would be encrypted to preserve user privacy.
+
+
+Example pipeline
+Input: a dataset that contains played songs
+Output: a dataset that contains the most-played songs
+object TrackPlayCountJob {  def main(cmdlineArgs: Array[String]): Unit = {	val (sc, args) = ContextAndArgs(cmdlineArgs)	sc.avroFile[TrackPlay](args("trackPlays"))	  .map(tp => (tp.getTrackId.toString, 1L))	  .groupByKey	  .map(t => (t._1, t._2.sum))	  .map { case (t, c) => s"$t\t$c" }	  .saveAsTextFile(args("output"))	sc.close()  }}
+[Idrees] Next let’s walk through our initial pipeline. For data processing at Spotify we use our own open source framework called Scio, which is a Scala wrapper built on top of Apache Beam. For the most part you can imagine this working similar to Scalding or Spark, which provide APIs that resemble the Scala collection library which we use to manipulation large amounts of data. At Spotify we are on Google Cloud Platform (GCP) which provides Dataflow, a product for big data processing, similar to AWS’s EMR
+
+This is an example Scio pipeline that outputs the most-played songs. It reads in some TrackPlay avro records, maps them to a tuple of trackId and 1, does some grouping and counting, formats into a tab-separated string, and outputs to text.
+
+If you’re familiar with data processing in similar frameworks you might think this looks verbose or sub-optimal, but don’t worry, we’ll get back to that later.
+
+
+
+The pipeline doesn’t exist in isolation
+[data] queen, feel the beat of the [new hire team]
+[Anne] Hopefully we haven’t lost anyone. This all seems pretty straightforward, if you’re a data engineer at Spotify. We typically work in autonomous teams, but we all write pretty similar data pipelines. The reason for that is that we have strong cultural norms around how to set up a data pipeline, and where to look for support. New hire engineers join a ‘bootcamp’ in their first two weeks to onboard them, and work on a project in a cross-functional team following best practices and sample code in documents we call the Golden Path. When they make a new data pipeline, they follow a scio-cookiecutter repository which already has working sample code with best practices in it. Engineers who are new to data but not to Spotify can go to something we call Data University, which contains Scio exercises to get up to speed with the data engineering concepts contained in the Golden Path. 
+
+We also have cultural norms around data quality. For example, we run a program called Test Certified for Data. TC4D offers best practices that you can follow around testing and operationalizing your pipeline, and when you complete them, you get peace of mind and a certification badge in the internal tool where you look up datasets. Also, members of your team earn stickers and eventually a hoodie. For example, one TC4D requirement is around testing important parts of your code. So let’s take a look at one such test.
+
+Open source tools for data quality
+We’ll float on, good [tools] are on the way
+[Anne] In the next section, we’ll be talking about several features of Ratatool, an open source tool we’ve built to improve the process of writing and testing data pipelines. 
+
+Integration testing
+I want your love and I want your revenge
+You and me could write a [pipeline test]
+[Anne] We typically write pipeline integration tests using Scalatest and scio-testing, which provides something called JobTest. A JobTest allows you to specify the class containing your pipeline, a List of test inputs to the pipeline’s main method, and expected outputs that can be matched against real ones. Let’s look in more detail. 
+
+Example pipeline
+Input: a dataset that contains played songs
+Output: a dataset that contains the most-played songs
+Unit test: example inputs have expected outputs
+  val input: Seq[TrackPlay] = List(	mockTrackPlay("track1", 31000L),	mockTrackPlay("track1", 33000L),	mockTrackPlay("track2", 35000L)  )  val expectedOutput: Seq[String] = List(	"track1\t2",	"track2\t1"  )  s"A Track Play Count job" should "work" in {	JobTest[TrackPlayCountJob.type]  	.args("--trackPlays=trackPlays.avro", "--output=trackCounts.txt")  	.input(AvroIO("trackPlays.avro"), input)  	.output(TextIO("trackCounts.txt"))(_ should containInAnyOrder (expectedOutput))  	.run()  }
+[Anne] We can write a Scalatest unit test that verifies, for a few sample inputs, our pipeline does the right thing. Here we create some fake testing data by calling mockTrackPlay (which we’ll come back to later), and our expected output. 
+
+
+Ratatool - Scalacheck
+Our team is writing pipeline logic… need to write tests
+Unit tests
+Integration tests
+Property-based tests?
+
+[Anne] We have shown an example of integration testing our pipeline, and in more complex cases we would also have additional integration tests as well as some unit tests. We can also enable users to construct property based tests while simplifying their unit and integration testing. We won’t dive deeply into property based testing for the purposes of this talk, but there are plenty of online resources if you’re not familiar with the concept. To quickly summarize, it’s an approach to testing where you test in aggregate on expected invariant properties of your code instead of on specific inputs and outputs. For example, testing associativity of a function.
+
+
+
+Ratatool - Scalacheck
+private def mockTrackPlay(trackId: String, msPlayed: Long) = {	TrackPlay.newBuilder()  	.setTrackId(trackId)  	.setMsPlayed(msPlayed)  	.setCountry("US")  	.build  }
+private def mockTrackPlay(trackId: String, msPlayed: Long) = { specificRecordOf[TrackPlay]   .amend(Gen.const(trackId))(_.setTrackId)   .amend(Gen.const(msPlayed))(_.setMsPlayed)   .sample.get}
+mockTrackPlay("trackId", 600000L)// {"trackId": "trackId", "country": "փ䀭⑾", "msPlayed": 600000}
+[Anne] If we recall from the earlier testing slide, we call this mockTrackPlay function to create testing data. If we look into this function, it could look like this. We create a builder for our Avro object, set each field, and return the build result. If we have a large number of fields or a complex record, this can quickly get frustrating or tedious, and it’s easy to miss testing combinations of data that you didn’t think of initially.
+
+We built generators for Scalacheck to make this easier for end users. Scalacheck is a Scala library that enables you to write property based tests through the use of Generators, which generate random data to feed into your tests. We provide generators for Avro, BigQuery, and Protobuf objects which can be used for property based testing, but also in cases like this where we just want some simple sample data to feed into our Integration Testing pipeline.
+
+
+End to end tests - quickly
+I’m the [DAG] guy....
+[Idrees] Now that we’ve run our integration test, we want to try running the pipeline end-to-end on some real data
+
+Ratatool - Sampler
+Want to run pipeline end-to-end
+We have 232M MAU, so lots of track plays per day
+Pipelines can cost a lot of money or take a long time
+Downsample input to reduce iteration time
+
+ratatool bigSampler avro 
+--in gs://bucket/input_tracks.avro  --out gs://bucket/sampled_tracks.avro  --sample=0.01
+[Idrees] However our input data is all track plays for a given day, which is very large. We have 232M monthly active users, and users are listening to many songs per day. To actually run this in production would consume a large amount of resources (workers, machines, quotas) but can also cost a lot of money. And of course, we’re not going to get our pipeline right the first time. To speed up the iteration process we can downsample our input data using Ratatool. Ratatool is a library, which we’ve seen in the previous section, but it also provides a CLI interface that can be installed through brew. On the right is a simple example command for sampling through ratatool. Running this will spin up a batch dataflow job that executes on Google Cloud and produces our sampled output. For the purposes of this presentation we’ve omitted the dataflow options and arguments which would have to be added in order to actually execute the job.
+
+Ratatool - Sampler
+[Idrees] This is an example of a DAG that will be spun up on Dataflow after executing the ratatool command. As you can probably guess, this is the most basic sampling job that ratatool will build for our avro dataset. However, ratatool also provides much more rigorous sampling, such as deterministic sampling given a seed, or sampling for a stratified or uniform distribution. For our use case we only want a smaller input dataset, so a simple job will suffice.
+
+
+Where are you running the end to end tests?
+And I’m here to remind you 
+of the mess you left when you [wrote to prod]
+[Anne] Now we want to run our pipeline on our sample data. We want to make sure to do testing in a way that doesn’t affect production.
+
+Test Environment
+Now it’s time for our team to run their pipeline!
+Common issues & mistakes in the development lifecycle can create conflict or confusion
+Multiple engineers testing at the same time
+Engineers may accidentally publish test data to production
+This can propagate downstream
+Testing resources can eat up production quotas
+Engineers can forget to clean up testing data
+
+[Anne]
+Internally @ Spotify we use Luigi to manage dependencies within a single job, and flag when upstream or external jobs have completed.
+In 2019, we also have over 1500 engineers writing and iterating on code every single day. If you’re familiar with our organizational structure, we also have very decentralized, cross-functional teams.
+Together this can result in a few common issues:
+Multiple engineers working on a team can be executing test runs of a pipeline at the same time
+Engineers can accidentally publish testing data to the production location
+Downstreams can mistakenly find and use testing data
+Testing resources can eat up production resources and quotas
+Engineers can forget to clean up testing data
+We built a testing environment that allows users to wrap luigi easily to encapsulate these problems and help streamline the way that Spotify Data engineers handle their development lifecycle so that we can develop standardization across our organization
+
+Testing changes in your dataset output
+Turn and face the strange
+[Anne]
+Let’s assume that we’re now magically using this tool, and testing in a separate location from production. It’s going great, and now we have our pipeline running in a segregated environment end to end, and it produces the right output. However we find that it’s actually very slow, and we want to make some changes to improve its performance.
+
+
+Ratatool - Diffy 
+object TrackPlayCountJob {  def main(cmdlineArgs: Array[String]): Unit = {	val (sc, args) = ContextAndArgs(cmdlineArgs)	sc.avroFile[TrackPlay](args("trackPlays"))   	  .map(_.getTrackId)  	  .countByValue  	  .map { case (t, c) => s"$t\t$c" }  	  .saveAsTextFile(args("output"))	sc.close()  }}
+object TrackPlayCountJob {  def main(cmdlineArgs: Array[String]): Unit = {	val (sc, args) = ContextAndArgs(cmdlineArgs)	sc.avroFile[TrackPlay](args("trackPlays"))	  .map(tp => (tp.getTrackId.toString, 1L))	  .groupByKey	  .map(t => (t._1, t._2.sum))	  .map { case (t, c) => s"$t\t$c" }	  .saveAsTextFile(args("output"))	sc.close()  }}
+[Anne]
+Our initial pipeline is shown on the left, and with some work we find a better way to rewrite this for clarity and performance, which is shown on the right. However, before we push to production, we want to ensure that we haven’t broken anything and our pipeline still produces the correct output.
+
+Ratatool - Diffy
+Pipeline updated to be more performant
+Have we broken anything?  
+ratatool bigDiffy --input-mode=avro --key=track_id  --lhs=gs://bucket/unoptimized.avro --rhs=gs://bucket/optimized.avro --output=gs://bucket/diff
+[Anne]
+Ratatool also provides BigDiffy which, similar to the sampler, will spin up a full dataflow DAG. BigDiffy produces a full statistical diff of the LHS and RHS, and will tell you the differences per key, globally, as well as statistics on field level differences. At our scale we can’t always expect data to be exactly the same from run to run, but it’s very helpful to know that the differences conform to certain bounds or expectations.
+
+Ratatool - Diffy
+[Anne]
+Here’s an example DAG which is generated by BigDiffy. It’s a little bigger than the previous sampling DAG, because it does more. 
+
+Testing content in your dataset output
+
+How was I supposed to know
+that something wasn't right here?
+[Idrees] Now we have our pipeline running end to end in a testing environment, and we’ve done some iteration and optimization. However we have certain expectations about the data we produce - how can we know if they’re actually being met?
+
+Validation
+How do we have confidence in what the data 
+actually contains?
+Are our TrackIDs are actually TrackIDs? 
+How many invalid countries do I have?
+
+{	"name": "TrackPlay",	"namespace": "com.spotify.surprises.schema",	"type": "record",	"fields": [    	{        	"name": "trackId",        	"type": "string"    	},    	{        	"name": "country",        	"type": "string"    	},    	{        	"name": "msPlayed",        	"type": "long"    	}	]}
+[Idrees] We have a high level view of our data but what if we want to know what the data actually contains?
+How do we know if our trackID looks like a valid trackIDs? Or our country field is a valid country code? 
+How do I know how many valid track IDs we have seen?
+
+Validation
+Have Avro record containing fields with avro types
+Records can have many fields to be validated
+Records can have Nesting or Repeated fields
+Primitive data types can represent many different kinds of data
+A String could be a Track ID or a Country Code
+Many Data Engineers spread across different teams who have different expectations of their data
+Want to provide simple API for the pipeline author
+[Idrees] We would like to be able to provide some way to enable pipeline authors to validate these assumptions about our TrackPlay dataset. However, we currently face a few different problems. We have an Avro record which contains avro types that we can’t manipulate. Our records can have many fields which need to be validated. Records can be complex and have nesting or repeated fields. Primitive data types can map to many different kinds of data. And given all of this we still want to be able to provide a simple API for the pipeline author.
+
+
+
+Validation
+trait Validator[A <: ValidationType] {  def validate(a: PreValidation[A]): PostValidation[A]}
+trait ValidationType {  def checkValid: Boolean}
+
+case class CountryCode(protected val data: String) extends ValidationType {  override def checkValid: Boolean = Locale.getISOCountries.contains(data)}
+[Idrees] First let’s try to move away from the avro data types into something we can manipulate and control more easily. We can define a ValidationType trait which represents our actual data contents that we want to validate. We have a checkValid function that returns true if the contents of our field are valid. We have a CountryCode case class that extends this and defines checkValid based on whether the contained data is a part of the Locale ISOCountries set.
+
+Once we have these ValidationTypes defined we can start mapping our avro records into a case class which contains fields with these types. However, remember we still have a few other issues from the previous slide that we want to be able to solve. Such as handling complex records, or being able to provide a simple and lightweight API for the end user.
+
+Initially we tried a macro based approach to reduce complexity for the end user, which involved writing quasiquotes by hand. However we found that the code complexity grew very rapidly as new features were added. Additionally it could be inflexible when trying to implement specific features which users were asking for, and code reusability was quite low for the volume of complex code we were writing.
+
+We started looking at ways we could address this and settled on a typeclass based approach instead. We settled on a Validator typeclass which is defined here are the bottom. It has one function called validate that takes in a PreValidation of A which is bounded on ValidationType, and returns a PostValidation state wrapper of A.
+
+
+Validation
+class ValidationTypeValidator[A <: ValidationType] extends Validator[A] { override def validate(data: PreValidation[A]): PostValidation[A] =
+   data.validate} implicit def vtv[T <: ValidationType]: Validator[T] = new ValidationTypeValidator[T]
+[Idrees] Now we can define a Validator typeclass for all Validation Types. This checks whether the contents of any given Validation Type is valid and returns a PostValidation state wrapper. We can also implicitly define this validator for any given Validation Type which is shown at the bottom
+
+Validation
+object Validator {  type Typeclass[T] = Validator[T]  def combine[T](caseClass: CaseClass[Validator, T]): Validator[T] = new Validator[T] {    override def validate(a: PreValidation[T]) : PostValidation[T] = {      val mapped: Seq[PostValidation[T]] = caseClass.parameters.map(param =>        param.typeclass.validate(param.dereference(a.data)))      val record = caseClass.rawConstruct(mapped)      if (mapped.exists(_.isInvalid)) {        Invalid(record)      } else {        Valid(record)      }}
+[Idrees] Now that we have typeclass instances for our Validation Types, using typeclass derivation we can produce typeclass instances for case classes containing these types. This means that we can derive how the validate function should work in the case class level if we know how to validate on the field level.
+
+In Scala, there’s two popular libraries that can handle the macro details of compile-time typeclass derivation. There’s shapeless, which is widely used not just for typeclass derivation, but for generic programming in general. There’s also magnolia, which is a micro library by Jon Pretty focused only on typeclass derivation. Our code and examples in this talk are in Magnolia, which we chose since it’s lighter weight.
+
+The code on this slide defines a “combine” function for a case class which has parameters that each have typeclass instances. Those instances define a validation function for that given parameter, which we call into in the map. We use those parameters to construct an instance of our case class, and then we wrap this in a PostValidation state. In this case we define the record as “Invalid” if any given parameter is found to be invalid.
+
+Validation
+implicit class SCollectionValidator[T](sc: SCollection[T])(implicit vr: Validator[T]) { def validate(): SCollection[PostValidation[T]] = {   sc.applyTransform(ParDo.of(new ValidatorDoFn[T](vr))) }}
+implicit class SCollectionConverter[GR <: GenericRecord](sc: SCollection[GR]) { def fromAvro[T](implicit c: AvroConverter[T]): SCollection[T] = {   sc.applyTransform(ParDo.of(new FromAvroConverterDoFn(c))) }}
+[Idrees] Now we have our typeclasses defined on the field level, and we can generate typeclass instances for the case class level at compile time. Since we can make these instances implicitly discoverable, we can also define an implicit class which will extend our Scio collection. This will add a validate method that can be called directly on the collection. 
+In the first example we define a validate method, which calls applyTransform and creates an instance of a ValidatorDoFn. If you’re unfamiliar with beam, don’t worry, all this is doing is some wiring to directly connect beam’s internal processing mechanisms to our validator typeclass. In this case it’s simply invoking the derived case class level validation per record. 
+Similarly, we can further reduce the overhead on the end user by deriving instances for an AvroConverter typeclass, which allows users to convert an avro record to a case class with a single function call.
+
+Validation
+Magnolia can be used to derive 
+Validator Typeclasses for our records
+Can also be used to derive Converters 
+to/from Avro
+
+object TrackPlayCountJob {  def main(cmdlineArgs: Array[String]): Unit = {	val (sc, args) = ContextAndArgs(cmdlineArgs)	sc.avroFile[TrackPlay](args("trackPlays"))
+      .fromAvro[TrackPlayCC]
+      .validate()  	.map(_.trackId)  	.countByValue  	.map { case (t, c) => s"$t\t$c" }  	.saveAsTextFile(args("output"))	sc.close()  }}
+ case class TrackPlayCC(
+  trackId: TrackId, 
+  country: Country, 
+  msPlayed: PosNum
+)
+[Idrees] With these two implicit classes now defined, we’re ready to update our pipeline to use our new validation setup. By adding only two lines to our job, we can now convert our avro records into a case class which contains all of our validation types. We can then validate our assumptions about these fields for each record in our collection, and then continue processing our TrackPlays as we were previously. This drastically reduces the overhead on the end user to implement validation in their data pipelines and minimizes the impact on their codebase.
+
+How do we know if upstream has changed?
+I just took a DNA test, turns out I'm 100% that [data]
+[Anne] Once our pipeline is running, our job is done? Y/N?
+
+Statistical Profiling
+Our pipeline is running End-to-End
+How can we have a high level view of the actual production inputs/outputs?
+What is the distribution of msPlayed?
+How many distinct countries do I have?
+What are the most common tracks?
+[Anne] We have confidence that _our_ pipeline is actually doing the right thing given the correct inputs/outputs.
+But how can we know that our inputs (and therefore our outputs) are actually correct?
+We built an internal library which helps address part of this problem by statistically profiling your datasets.
+End users can look at this data for any dataset using it and get a quick high level view of their data distribution, min/max, nulls, and top values.
+The output UI can be thought of as something similar to Google’s Facets overview, which is an open source tool that also displays profiles, and the profile and workflow itself is similar to TensorFlow Data Validation, which is an open source tool for profiling in a TensorFlow machine learning context. 
+
+Focus on easy to use tools
+[Anne] We just covered several tools that we use to eliminate surprises by adding integration tests, end-to-end tests quickly and in an isolated pre-production environment, and both manual and automatic verification that data conforms to its expected shape, all enabled by a culture which values data quality. So how can you do this at your company? Our suggestion is: build tools that make it easy to improve data quality with less effort from the pipeline authors. 
+
+At your company, the individual tools you work with or aspects of quality you value may vary, but one constant we find across all our products is that our customers are more likely to adopt them when it’s less work to adopt them. Especially given that data quality usually happens on an opt-in basis, product teams can tend to deprioritize it compared to delivery. When we make ease-of-use improvements, there is less overhead for these users to opt in, and data quality is better for everyone, especially downstream consumers of the data. 
+
+Anne: 
+anned@spotify.com, twitter @precisememory, github anne-decusatis
+Idrees: 
+idrees@spotify.com,  twitter @idreesxkhan, github idreeskhan
+Songs in this talk: https://spoti.fi/2pMA6qu
+Spotify open source:
+https://github.com/spotify/ratatool
+https://github.com/spotify/scio
+https://twitter.com/SpotifyEng
+
+Other open source:
+	https://github.com/propensive/magnolia
+https://github.com/typelevel/scalacheck
+
+Thanks for listening!

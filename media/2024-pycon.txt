@@ -1,0 +1,57 @@
+Stay Hydrated
+similarities between Python programming and swordfighting
+Anne DeCusatis
+5/19/2024, PyCon US Lightning Talks
+Stay Hydrated
+similarities between Python programming and swordfighting
+
+
+
+About me
+Python programmer, professionally since 2015Staff Software Engineer at Flatiron Health
+—
+Rapier safety marshal Barony of Caerthe (Denver, CO chapter of Society for Creative Anachronism)
+I’m in green (2022 photo)
+Python programmer, professionally since 2015
+currently Staff Software Engineer at Flatiron Health
+—
+Current rapier safety marshal for Barony of Caerthe (Denver, CO chapter of Society for Creative Anachronism)
+
+It’s important to stay hydrated at events
+It’s important to stay hydrated at events
+
+I often go to SCA events in the American Southwest - at elevation particularly, at the events I’m at in Colorado and New Mexico, it’s important to drink a lot of water. While we’re basically at sea level, this is also true at PyCon
+
+Following a reference is how you get started
+Following a reference is how you get started
+
+The picture on the left is the cover of a book about how to interpret Destreza a historical Spanish fencing master’s writings on how to learn to defend yourself with a sword. I often learn basics by reading, so I find it useful. You might be different!
+On the right is a screenshot of “What’s New In Python 3.12” - another thing you can learn by reading.
+
+…but it’s different than doing it in real life
+But it’s different than doing it in real life
+
+When someone new comes to our practice for the first time, I get them in armor as soon as possible. Watching people do it is not nearly as much fun to me as actually doing it.
+Another place where this is true is software development. The things I learned in my first year working out of college were things that would never had come up had I not been in a production environment. I was good at school but that didn’t mean I knew how things really worked.
+
+Both involve headspace and analytical thinking about “your opponent”*
+
+*the computer is your opponent
+Both involve headspace and analytical thinking about “your opponent”*
+
+People often compare fencing to chess. Once you’ve got the basics down, the strategy begins. You start looking for tells in your opponent, and your presence and headspace - how quickly you react, and what you react with, almost always determine if you win or lose. 
+
+The computer is your opponent in Python. Your mental model of how a program acts and reacts is how you determine success. 
+
+As much about the people
+ as about the activity itself
+Lastly -
+
+As much about the people
+ as about the activity itself
+
+When I moved to Denver 3 years ago, I moved for work and I had never visited Denver, I didn’t know anyone else there. I looked up the local SCA swordfighting group on Facebook, and they welcomed me, and now Denver is my home.
+
+I’m sure you’ve heard before on this stage that - PyCon is by the community, for the community.
+
+Thank you for having me

@@ -1,0 +1,86 @@
+Slide 1: 
+Hi! I’m Anne DeCusatis, and I’m here today to tell you about my favorite Unicode character. 
+
+Slide 2: 
+Before I get started, I want to define a couple terms. I’m going to be talking about Unicode characters a lot. There’s a very technical definition of a character in the Unicode Technical Report 17, which is linked on my slide. I want to keep things simple, so when I say character, I’ll be referring to a sequence of bytes which represents part of a letter or symbol. I’ll be using the terms “character” and “code point” interchangeably. When I say glyph, I’ll be referring to the visual representation of the character. 
+
+Slide 3: 
+My favorite character isn’t visible on this slide, but its effects are. The zero-width joiner, U+200D,  is an invisible combining character used to combine two or more Unicode characters to form a new glyph that is displayed in its place.
+
+First, I want to tell you what Unicode is, and why we use the zero-width joiner at all. I think that this history is really interesting, and the design choices we make even now are informed by it. 
+
+Slide 4: 
+We didn’t always have zero-width joiners because we didn’t always have computers. With typewriters, if you want to combine two characters, you can backspace and then type the second character on top of the first one. If you want to write in two different scripts on a typewriter, you have to switch out the ball inside the typewriter that has the characters engraved on it, such as in this picture. 
+
+Slide 5: 
+ASCII, an early standard for storing character information on a computer, didn’t have a zero width joiner and only had English characters. People would work around this in other languages by writing letters without accents and basically just hoping for the best. This example is in Italian. You could get the idea of what was being communicated when you saw a printout, but it was a frustrating experience.
+
+Slide 6: 
+In this era, there was still no standard way to communicate between locales and between computers. IBM mainframes would use specific code pages for different locations, sort of like having a different character ball in your typewriter - so, you could speak in properly accented Italian as long as you printed your message on a computer that used the right code page. I say “printed” because there was no guarantee whatsoever, if your computer was writing a file to be used on another computer, that both computers would use the same code page. 
+
+Slide 7:
+One program to convert between code pages, iconv, is still included by default if you’re using a Linux distribution. You can type “iconv --list” to get an idea of the number of different code pages you might have been unlucky enough to encounter. 
+
+Slide 8: 
+Now, people speaking Italian and other languages online are able to do so with significantly less hassle. So, what changed? 
+In 1991, the Unicode Consortium was created. This quote from the consortium says it all. 
+“With Unicode, the information technology industry has replaced proliferating character sets with data stability, global interoperability and data interchange, simplified software, and reduced development costs.”
+The Unicode standard describes different code planes which have no characters in common with each other, and thus can be used at the same time, rather than overlapping code pages. It's like having a big character ball in your typewriter, with all the characters in it. 
+Also, somewhat more technically, the sequence of bytes which make up a character are written such that if you start at the beginning of the byte, you can start processing characters from your current location. This doesn’t guarantee that you will have a complete character, your starting point can still be partway through a character, but it’s more robust than some encodings, such as the Shift-JIS encoding used in Japan before Unicode. 
+And how do we handle overlapping two characters, which was so easy on a typewriter? We use my favorite character, the zero-width joiner!
+
+Slide 9: 
+It is my understanding that Arabic letters in words are typically joined, or can be separately written if you’re not trying to write cohesive words. I first learned about this because of Ramsey Nasser, who I am honored to share a stage with here at !!Con. He has linked to, and I believe runs, a Tumblr blog devoted to pointing out places which get this wrong and don’t connect letters they should. 
+
+Since a zero-width joiner *joins* letters, it can be used to make sure Arabic letters are written in their joined form.  Arabic letters should have properties specified in Unicode to join automatically, but the zero width joiner can force the joined form even when they’re not next to a joining character. This slide demonstrates this. Note that although Arabic is typically read right to left, this slide should be read left to right. 
+
+Slide 10: 
+To better understand the zero-width joiner, I like to think of how it differs from other characters in similar situations. 
+The zero-width non-joiner is like the evil twin of the zero-width joiner, in that it acts the opposite of it. Where the zero-width joiner JOINS two characters, combining them into one visual glyph, the zero-width non-joiner represents that you should deliberately NOT JOIN them, especially if they are joined by default. The example on my slides, although it’s somewhat contrived and unlikely to be encountered in Kannada text, illustrates this - the characters on top are joined by default, which is the same behavior that the zero-width joiner mimics, and on the bottom they have a zero-width non-joiner between them.  
+
+Slide 11: 
+You may have noticed that my early slide had three zero-width joiner examples, and I’ve only gone through two so far. I don’t speak Kannada or Arabic. However, as I was born in the 90s, you could say that I do speak another language proficiently: the language of emoji. The zero-width joiner is used mostly in couple and family emoji right now. The Unicode consortium names this glyph as “couple with heart: woman, woman”.
+
+Slide 12: 
+One of the reasons I like the zero-width joiner is that it completely destroys any assumptions you might have about displaying strings based on how long they are.
+This is especially apparent in Python 2.7. Let’s try an example. Someone in the audience, shout out a number for this expression - what’s the length of this string? 
+<<wait for a couple people to shout something>>
+OK, I heard ______.
+
+
+Slide 13:
+The correct answer to this is 20. The string abstraction Python uses by default in Python 2.x is a “byte string” - and there are 20 individual hex escapes which comprise this string. 
+But Python also has the concept of a Unicode string, which is the default in Python 3 onwards. 
+
+Slide 14:
+So let’s try this again. Someone else in the audience, shout out a number for this expression - what’s the length of this string? 
+<<wait for a couple people to shout something>>
+OK, this time I heard ______.
+
+Slide 15:
+The correct answer to this is 6. There are six Unicode characters in this string - woman 1, zero width joiner 1, heart, a variant selector for the heart which says that we want the emoji display of it, zero width joiner 2, and finally woman 2. 
+
+Slide 16:
+I have one more puzzle for you, though. Perhaps, like me, you program in languages which run on the Java Virtual Machine. You may or may not be blissfully unaware of the fact that Java stores strings as UTF-16. So you call String.length() on your emoji string… and what happens? Shout something to me. 
+<<wait for a couple people to shout something>>
+I heard ______.
+
+Slide 17:
+The woman emoji doesn’t fit in the 16 bits of a UTF-16 character. It uses surrogate pairs to get around this, which means that the woman emoji character uses two UTF-16 bytes, a high surrogate and a low one, which pair together to create one code point. Unfortunately, both halves of the pair are counted as separate characters with String.length(). 
+
+Slide 18:
+You want String.codePointCount() to give you the accurate number of Unicode characters in a Java string. 
+
+Slide 19:
+The zero-width joiner isn’t the only way an emoji can change in a way that breaks your assumptions about length, though. For example, emoji with skin that you can apply a color to do not use the zero-width joiner. That doesn’t mean the length or even the code point count of the string is a representation of how long they are. They use a second character to specify skin tone, much as the heart character had an emoji variant selector in my prior example, because a variant of the same concept represented by an emoji is different than a new conceptual emoji made by combining existing pieces. 
+
+Slide 20:
+But this is a judgment call by the Unicode Consortium. 
+
+Slide 21:
+There’s one more important wrinkle you have to deal with before you can display emoji characters, especially those with zero-width joiners, well. The Unicode 8.0 Standard, introduced last year, uses zero-width joiners for a small subset of all emoji, though a new version of the standard is actively being developed. Not all devices support Unicode 8. My old Pebble smartwatch is just one example of a device that came out before 2015 which I can’t install a new font on. Most computers also don’t yet support Unicode 8 without installing a new font, which made applying to give this talk incredibly nerve-wracking, just to give one example. The Unicode Consortium has defined sequential fallbacks for emoji for devices which don’t support Unicode 8, and they are very careful to avoid breaking backwards compatibility. Do you need to be as careful as they are in your applications? 
+
+Slide 22: 
+When you’re writing some code for something that takes user input, think carefully about how much space you’re allotting for the display of that input. We live in an amazing and diverse world, and I hope that we can build tools for everyone in this world, not just those of us that understand English. 
+
+Thanks for listening!
