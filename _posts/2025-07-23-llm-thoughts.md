@@ -52,13 +52,13 @@ Two examples this month:
 
 2. A long time friend of my wife mentioned on their monthly call that he is hearing about people using AI at the bank he works for (I think he works in a role that coordinates other people), and had a lot of questions for me about what it can and can't do. At first I was surprised by what he said it was being used for, but digging into the actual details, it made sense to me and I felt it had appropriate caveats and checks in place at this time. 
 
-### Things I now think LLMs are sort of good for
+### Two things I now think LLMs are sort of good for
 
-1. Extracting semistructured data from completely unstructured human-created text, if it doesn't have to be perfect and can be "good enough" and/or reviewed by a human later. 
+One: Extracting semistructured data from completely unstructured human-created text, if it doesn't have to be perfect and can be "good enough" and/or reviewed by a human later.
 
 One thing that's interesting to note is that expert human abstraction of medical data into a structured format is also not 100% accurate - sometimes patient charts are ambiguous, and the main goal of a medical chart's authors isn't to be used for later research most of the time. It is also still true that the map (chart) is not the territory (body) - I worked on a cancer dataset once that consisted mainly of patients who met the dataset inclusion criteria because their doctors had diagnosed them based on the imaging and biopsy, and in the subsequent surgery it was found that the cancer was larger than expected and they might not have gone to surgery at that stage had that been known.
 
-2. Searching through a large dataset to find an approximate match for a query that can be contextualized and dug into in more depth by a human. More broadly, summarization?
+Two: Searching through a large dataset to find an approximate match for a query that can be contextualized and dug into in more depth by a human. More broadly, summarization?
 
 Are LLMs good enough at these things to be worth the known bad side effects? I'm not sure, but if they are good at things is a research question so I guess whoever did get accepted to the PhD programs I was rejected from will publish on it in the next few years. My intuition is, probably not in the long term, but neither are cars or airplanes and I use those too. I am not sure yet what harm reduction looks like for my use of cars either. 
 
